@@ -1,24 +1,42 @@
+## Sentry crash reports for the gha-artifact-uploader.
 #sentry_dsn: Sentry_DSN_URL_Here
 ## Default listening port is 3000, set it using this variable:
 #listening_port: 3000
 storages:
+  # Any name for your storage.
   your_s3_storage:
+    # The storage method this section is describing.
+    # Valid values are "S3" and "file".
     method: S3
+    # S3 Endpoint.
+    endpoint: https://fra1.digitaloceanspaces.com
     accessKeyId: YOUR_ACCESS_KEY_ID_FOR_S3
     secretAccessKey: YOUR_SECRET_ACCESS_KEY_FOR_S3
     bucket: your-s3-bucket-name
+    # Your S3 bucket region.
+    # Examples are "us-east-1" for AWS and "fra1" for Digital Ocean
     region: your-s3-region
+    # Path on your S3.
+    # You may use variables like "[:repo]" to have the URL change for every call.
     path: builds/PR/[:owner]_[:repo]/PR[:pull_number]/[:file_basename]_[:commit_short_hash][:file_extname]
-    public_url: https://your-bucket-url.s3.amazonaws.com/builds/PR/[:owner]_[:repo]/PR[:pull_number]/[:file_basename]_[:commit_short_hash][:file_extname]
-    # acl could be set in case that you have permissions to set this option. In the case of a public facing S3 repo you don't have to set this.
-    #
-    # acl: public-read
+    # The URL that you bot posts.
+    # You may use variables like "[:repo]" to have the URL change for every call.
+    public_url: https://your-bucket-url.fra1.digitaloceanspaces.com/builds/PR/[:owner]_[:repo]/PR[:pull_number]/[:file_basename]_[:commit_short_hash][:file_extname]
+    # acl could be set in case that you have permissions to set this option. In the case of a public facing S3 repo you don't necessarily have to set this.
+    acl: public-read
+  # Any name for your storage.
   local_disk:
     method: file
+    #Path on your filesystem.
+    # You may use variables like "[:repo]" to have the URL change for every call.
     path: ./storage/[:owner]_[:repo]/PR[:pull_number]/[:file_basename]_[:commit_short_hash][:file_extname]
+
+# Your bots GitHub Authentication token. It needs "repo" access to comment.
 github_auth_token: your_notify_bots_personal_github_auth_token_here
 repositories:
   your_github_username/your_repository:
+    # Secret used by the GitHub Webhook.
+    gh_notify_secret: very_secret
     storages:
       local:
         storage: local_disk

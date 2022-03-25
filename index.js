@@ -282,14 +282,16 @@ async function publishRuns(check_suite_id) {
                 } else if (storage.method === 'S3') {
                     // Create S3 service object
                     let s3 = new AWS.S3({
-                        apiVersion: '2006-03-01',
+                        //apiVersion: '2006-03-01',
                         region: storage.region,
+                        endpoint: storage.endpoint,
                         credentials: new AWS.Credentials(storage.accessKeyId, storage.secretAccessKey)
                     });
                     let data = (await s3.upload({
                         Bucket: storage.bucket,
                         Key: storagePath,
                         Body: file.buffer,
+                        Endpoint: storage.endpoint,
                         ACL: storage.acl
                     }).promise().catch((err) => {
                         console.log("Error", err);
@@ -327,7 +329,7 @@ async function publishRuns(check_suite_id) {
             owner: globalOwner,
             repo: globalRepo,
             issue_number: globalPullNumber,
-            body: 'The following links are available: \n' + message
+            body: 'Here are some builds you may use for testing: \n\n' + message
         }).catch((e) => {
             Sentry.captureException(e);
             console.error('Caught error: ', JSON.stringify(e));
