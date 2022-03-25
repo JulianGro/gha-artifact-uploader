@@ -8,3 +8,7 @@ Webservice that verifies GHA projects and allows you to upload them to remote st
 - Build and start Docker container: `docker-compose up`
 
 You may take a look at https://github.com/overte-org/overte to see it in action on PR builds.
+
+If you would like to adapt this software for use in different projects, I may be available for helping with the initial setup.
+I am no JavaScript developer at all, but without any documentation I needed to figure everything out myself.
+You can contact me via Matrix on: @juliangro:overte.org
