@@ -9,7 +9,7 @@
   "author": "Thoys",
   "license": "ISC",
   "dependencies": {
-    "@octokit/rest": "^17.1.4",
+    "@octokit/rest": "^17.11.0",
     "@sentry/node": "^5.10.2",
     "aws-sdk": "^2.1101.0",
     "concat-stream": "^2.0.0",
