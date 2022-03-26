@@ -42,16 +42,16 @@ app.use(async (request, response, next) => {
 
     const {owner, repo, commit_hash, pull_number, job_name, file_sizes} = request.headers;
     if (!owner || !repo || !commit_hash || !pull_number || !job_name || !file_sizes) {
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR).send('One of the required headers is not set correctly.');
+        response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('One of the required headers is not set correctly.');
         return;
     }
     if (!ALLOWED_REPOS.includes(`${owner}/${repo}`)) {
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Selected repo is not permitted to use this service.');
+        response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('Selected repo is not permitted to use this service.');
         return;
     }
     let pull_data = (await octokit.pulls.get({owner, repo, pull_number})).data;
     if (!isPRBuildAllowedToBeUploaded(pull_data)) {
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR)
             .send(`Please label PR build next time with the ${BUILD_UPLOAD_ALLOWED_LABEL} label.`);
         return;
     }
@@ -66,7 +66,7 @@ app.use(async (request, response, next) => {
         page: last_commit_page
     })).data;
     if (!pull_commits.some(commit => commit.sha === commit_hash)) {
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR)
             .send(`Pull request does not contains commit sha: ${commit_hash}.`);
         return;
     }
@@ -370,7 +370,7 @@ app.put('/', async function (request, response) {
     } catch (err) {
         console.log("err = " + err);
         Sentry.captureException(err);
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error happened please check server logs.');
+        response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('Error happened please check server logs.');
     }
 });
 
@@ -386,15 +386,15 @@ app.post('/webhook', async function(request, response) {
     const expectedSignature = getSignatureForBody(request.body);
 
     if (signature !== expectedSignature) {
-        response.status(HttpStatus.UNAUTHORIZED).send('Webhook authentication failure.');
+        response.status(HttpStatus.StatusCodes.UNAUTHORIZED).send('Webhook authentication failure.');
         return;
     }
 
     if (event === 'check_suite' && request.body.action === 'completed') {
         await publishRuns(request.body.check_suite.id);
-        response.status(HttpStatus.OK).send('Check suite completed request handled.');
+        response.status(HttpStatus.StatusCodes.OK).send('Check suite completed request handled.');
         return;
 
     }
-    response.status(HttpStatus.OK).send('Request handled.');
+    response.status(HttpStatus.StatusCodes.OK).send('Request handled.');
 });
