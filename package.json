@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@octokit/rest": "^17.11.0",
-    "@sentry/node": "^5.10.2",
+    "@sentry/node": "^6.19.3",
     "aws-sdk": "^2.1105.0",
     "concat-stream": "^2.0.0",
     "crypto": "^1.0.1",
