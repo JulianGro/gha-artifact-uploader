@@ -181,7 +181,7 @@ async function publishRuns(check_suite_id) {
             return false;
         }
 
-        let logs = (await octokit.actions.listWorkflowJobLogs({
+        let logs = (await octokit.actions.downloadJobLogsForWorkflowRun({
             owner,
             repo,
             job_id: actualJobID
