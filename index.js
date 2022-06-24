@@ -276,7 +276,7 @@ async function publishRuns(check_suite_id) {
                         }
                     } catch (err) {
                         Sentry.captureException(err);
-                        console.log(JSON.stringify(err));
+                        console.error(JSON.stringify(err));
                         continue;
                     }
                 } else if (storage.method === 'S3') {
@@ -368,7 +368,7 @@ app.put('/', async function (request, response) {
             message: "Publishing procedure started, unfortunately the GHA will have to finish before this."
         });
     } catch (err) {
-        console.log("err = " + err);
+        console.error("err = " + err);
         Sentry.captureException(err);
         response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('Error happened please check server logs.');
     }
