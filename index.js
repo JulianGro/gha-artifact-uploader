@@ -381,20 +381,26 @@ function getSignatureForBody(body) {
 }
 
 app.post('/webhook', async function(request, response) {
-    const signature = request.headers['x-hub-signature'];
-    const event = request.headers['x-github-event'];
-    const expectedSignature = getSignatureForBody(request.body);
+    try {
+        const signature = request.headers['x-hub-signature'];
+        const event = request.headers['x-github-event'];
+        const expectedSignature = getSignatureForBody(request.body);
 
-    if (signature !== expectedSignature) {
-        response.status(HttpStatus.StatusCodes.UNAUTHORIZED).send('Webhook authentication failure.');
-        return;
+        if (signature !== expectedSignature) {
+            response.status(HttpStatus.StatusCodes.UNAUTHORIZED).send('Webhook authentication failure.');
+            return;
+        }
+
+        if (event === 'check_suite' && request.body.action === 'completed') {
+            await publishRuns(request.body.check_suite.id);
+            response.status(HttpStatus.StatusCodes.OK).send('Check suite completed request handled.');
+            return;
+        }
+        response.status(HttpStatus.StatusCodes.OK).send('Request handled.');
+
+    } catch (err) {
+        console.error("err = " + err + "\n Make sure that your Webhook secret matches gh_notify_secret and that your Webhook Content type is set to json.");
+        Sentry.captureException(err);
+        response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('Error happened please check server logs.');
     }
-
-    if (event === 'check_suite' && request.body.action === 'completed') {
-        await publishRuns(request.body.check_suite.id);
-        response.status(HttpStatus.StatusCodes.OK).send('Check suite completed request handled.');
-        return;
-
-    }
-    response.status(HttpStatus.StatusCodes.OK).send('Request handled.');
 });
