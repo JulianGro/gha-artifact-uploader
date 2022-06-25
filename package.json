@@ -6,7 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Thoys",
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/JulianGro/gha-artifact-uploader.git"
+  },
+  "author": "Thoys, Julian Groß <julian.gro@overte.org>",
   "license": "ISC",
   "dependencies": {
     "@octokit/rest": "^17.11.0",
