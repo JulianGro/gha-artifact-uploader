@@ -7,6 +7,7 @@ const YAML = require('yaml');
 const fs = require('fs');
 const path = require('path');
 const AWS = require('aws-sdk');
+require('log-timestamp');
 
 let suitePublishRuns = {};
 
@@ -15,7 +16,7 @@ try {
     const configFileContents = fs.readFileSync('./config.yml', 'utf8');
     config = YAML.parse(configFileContents);
 } catch (e) {
-    console.error('Failed to load config.yml be sure exists otherwise copy config.example.yml and modify it to your needs.');
+    console.error("error: " + 'Failed to load config.yml be sure exists otherwise copy config.example.yml and modify it to your needs.');
     return;
 }
 
@@ -92,7 +93,7 @@ app.use(async (request, response, next) => {
             hash.update(readDataNow);
             fileBuffers.push(readDataNow);
             if (remainingData.length > 0 || fileSeek === fileSize) {
-                console.log('Reading of file completed');
+                console.log("info: " + 'Reading of file completed');
                 request.files.push({
                     hash: hash.digest('hex'),
                     buffer: Buffer.concat(fileBuffers),
@@ -126,7 +127,7 @@ function isPRBuildAllowedToBeUploaded(pull_request_data) {
 function getStoragePath(path, variables) {
     return path.replace(/\[\:([a-zA-Z0-9_]+)\]/g, (match, variable_key) => {
         if (variables[variable_key] === undefined) {
-            console.error(`Could not find ${variable_key} for path: ${path}.`);
+            console.error("error:" + `Could not find ${variable_key} for path: ${path}.`);
             return '';
         }
         return variables[variable_key];
@@ -163,9 +164,9 @@ async function publishRuns(check_suite_id) {
             repo,
             run_id
         }).catch((e) => {
-            console.log(e);
+            console.error("error: " + e.stack);
         })).data;
-        console.log('workflow run jobs: ' + JSON.stringify(jobsForWorkflowRun));
+        console.log("info: " + 'workflow run jobs: ' + JSON.stringify(jobsForWorkflowRun));
 
         let actualJobID = null;
         let isJobCompleted = false;
@@ -177,7 +178,7 @@ async function publishRuns(check_suite_id) {
             }
             return false;
         })) {
-            console.log(`Failed to find matching job_name in running jobs.`);
+            console.warn("warn: " + `Failed to find matching job_name in running jobs.`);
             return false;
         }
 
@@ -186,30 +187,30 @@ async function publishRuns(check_suite_id) {
             repo,
             job_id: actualJobID
         }).catch((e) => {
-            console.log(e);
+            console.error("error: " + e.stack);
         })).data;
 
         let regExp = new RegExp(BUILD_FILE_HASHES_REGEX, 'gm');
         let match = regExp.exec(logs);
         if (!match) {
-            console.log(`check_run ${check_run.name} doesn't have build file hashes.`);
+            console.warn("warn: " + `check_run ${check_run.name} doesn't have build file hashes.`);
             continue;
         }
         let buildFileHashes;
         try {
             buildFileHashes = JSON.parse(match[1]);
         } catch (e) {
-            console.log(`failed to parse build hashes.`);
             Sentry.captureException(e);
+            console.error("error: " + `failed to parse build hashes.`);
             continue;
         }
 
-        console.log('buildFileHashes: ' + JSON.stringify(buildFileHashes));
+        console.log("info: " + 'buildFileHashes: ' + JSON.stringify(buildFileHashes));
 
         let hasHashError = false;
         for (let i = 0; i < request.files.length; i++) {
             let file = request.files[i];
-            console.log(`Looking for the filename of artifact with the hash ${file.hash}.`);
+            console.log("info: " + `Looking for the filename of artifact with the hash ${file.hash}.`);
 
             let buildFileHashPair = buildFileHashes.find((buildFileHash) => {
                 return buildFileHash.sha256_checksum === file.hash;
@@ -217,7 +218,7 @@ async function publishRuns(check_suite_id) {
 
             if (!buildFileHashPair) {
                 hasHashError = true;
-                console.log(`Failed to find build hash in JSON object. Bailing.`);
+                console.warn("warn: " + `Failed to find build hash in JSON object. Bailing.`);
                 break;
             }
 
@@ -225,11 +226,11 @@ async function publishRuns(check_suite_id) {
             file.extname = path.extname(file.name);
             file.basename = path.basename(file.name, file.extname);
 
-            console.log(`Found ${file.name} with selected hash ${file.hash}.`);
+            console.log("info: " + `Found ${file.name} with selected hash ${file.hash}.`);
         }
 
         if (hasHashError) {
-            console.log(`Hash error found. Publishing for ${job_name} terminated`);
+            console.warn("warn: " + `Hash error found. Publishing for ${job_name} terminated`);
             continue;
         }
 
@@ -269,14 +270,14 @@ async function publishRuns(check_suite_id) {
                             if (err) {
                                 throw err;
                             }
-                            console.log('Saved ' + file.hash + '!');
+                            console.log("info: " + 'Saved ' + file.hash + '!');
                         });
                         if (repositoryStorage.publish_url) {
                             publishUrls[job_name].push(storagePath);
                         }
                     } catch (err) {
                         Sentry.captureException(err);
-                        console.error(JSON.stringify(err));
+                        console.error("error: " + JSON.stringify(err.stack));
                         continue;
                     }
                 } else if (storage.method === 'S3') {
@@ -294,15 +295,15 @@ async function publishRuns(check_suite_id) {
                         Endpoint: storage.endpoint,
                         ACL: storage.acl
                     }).promise().catch((err) => {
-                        console.log("Error", err);
+                        console.log("error: ", err.stack);
                     }));
-                    console.log('s3 upload output = ' + JSON.stringify(data));
+                    console.log("info: " + 's3 upload output = ' + JSON.stringify(data));
 
                     if (data !== undefined && repositoryStorage.publish_url) {
                         publishUrls[job_name].push(getStoragePath(storage.public_url, storageParams));
                     }
                 }
-                console.log(storagePath);
+                console.log("info: " + storagePath);
             }
         }
     }
@@ -332,12 +333,12 @@ async function publishRuns(check_suite_id) {
             body: 'Here are some builds you may use for testing: \n\n' + message
         }).catch((e) => {
             Sentry.captureException(e);
-            console.error('Caught error: ', JSON.stringify(e));
+            console.error('error: ', JSON.stringify(e));
         });
     }
 }
 
-app.listen(LISTENING_PORT, () => console.log(`App listening on port ${LISTENING_PORT}!`));
+app.listen(LISTENING_PORT, () => console.log("info: " + `App listening on port ${LISTENING_PORT}!`));
 
 app.put('/', async function (request, response) {
     try {
@@ -353,10 +354,10 @@ app.put('/', async function (request, response) {
         console.log(JSON.stringify(check_run_data));
 
         const checksuite_id = check_run_data.check_runs[0].check_suite.id;
-        console.log('checkrun id = ' + check_run_data.check_runs[0].id);
-        console.log('checksuite id = ' + checksuite_id);
+        console.log("info: " + 'checkrun id = ' + check_run_data.check_runs[0].id);
+        console.log("info: " + 'checksuite id = ' + checksuite_id);
 
-        console.log('run_id = ' + run_id);
+        console.log("info: " + 'run_id = ' + run_id);
 
         if (suitePublishRuns[checksuite_id] === undefined) {
             suitePublishRuns[checksuite_id] = [];
@@ -368,7 +369,7 @@ app.put('/', async function (request, response) {
             message: "Publishing procedure started, unfortunately the GHA will have to finish before this."
         });
     } catch (err) {
-        console.error("err = " + err);
+        console.error("error: " + err.stack);
         Sentry.captureException(err);
         response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('Error happened please check server logs.');
     }
@@ -399,7 +400,7 @@ app.post('/webhook', async function(request, response) {
         response.status(HttpStatus.StatusCodes.OK).send('Request handled.');
 
     } catch (err) {
-        console.error("err = " + err + "\n Make sure that your Webhook secret matches gh_notify_secret and that your Webhook Content type is set to json.");
+        console.error("error: " + err.stack + "\n Make sure that your Webhook secret matches gh_notify_secret and that your Webhook Content type is set to json.");
         Sentry.captureException(err);
         response.status(HttpStatus.StatusCodes.INTERNAL_SERVER_ERROR).send('Error happened please check server logs.');
     }
