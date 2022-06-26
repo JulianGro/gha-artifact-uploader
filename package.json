@@ -20,7 +20,7 @@
     "crypto": "^1.0.1",
     "express": "^4.17.3",
     "http-status-codes": "^2.2.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "yaml": "^1.10.2",
     "log-timestamp": "^0.3.0"
   }
